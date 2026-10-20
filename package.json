@@ -1,0 +1,31 @@
+{
+  "name": "crypto-pay-js",
+  "version": "1.0.0",
+  "description": "Check USDT (TRC20) payments to a wallet and generate a QR code for receiving one. Zero dependencies, no API key, runs via npx straight from GitHub.",
+  "bin": {
+    "crypto-pay": "./index.js"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT",
+  "author": "kleogeos",
+  "keywords": [
+    "freelance",
+    "crypto",
+    "usdt",
+    "trc20",
+    "cli",
+    "zero-dependencies",
+    "npx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kleogeos/crypto-pay-js"
+  },
+  "homepage": "https://kleogeos.github.io/freelancer-tools/"
+}
