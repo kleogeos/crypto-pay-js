@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const { execFileSync } = require("node:child_process");
 const path = require("node:path");
-const { dumpTransfers, asFloat, fmtWhen } = require("./index.js");
+const { dumpTransfers, asFloat, fmtWhen, parseSince } = require("./index.js");
 
 const SCRIPT = path.join(__dirname, "index.js");
 
@@ -61,6 +61,35 @@ function test_missing_address_fails() {
   assert.notStrictEqual(r.code, 0);
 }
 
+function test_parseSince_valid_date() {
+  // 2026-01-01T00:00:00Z
+  assert.strictEqual(parseSince("2026-01-01"), 1767225600);
+}
+
+function test_parseSince_garbage_throws_instead_of_silently_matching_nothing() {
+  // Regression: Date.parse('not-a-date...') returns NaN, and `x >= NaN` is
+  // always false, so without this check a malformed --since used to silently
+  // filter out every real transfer instead of erroring — see index.js.
+  assert.throws(() => parseSince("not-a-date"), /invalid --since/);
+}
+
+function test_check_with_bad_since_fails_before_any_network_call() {
+  // No network/wallet needed: parseSince() runs before fetchTransfers(), so a
+  // bogus address plus a bogus --since should still fail on the --since
+  // message, not a network error, proving the validation really runs first.
+  const r = run(["check", "not-a-real-address", "--since", "nonsense"]);
+  assert.notStrictEqual(r.code, 0);
+  assert.ok(r.stderr.includes("invalid --since"), r.stderr);
+}
+
+function test_check_with_non_numeric_min_fails_before_any_network_call() {
+  // Same bug class as --since: Number("abc") is NaN, and `x >= NaN` is always
+  // false, which used to silently match zero transfers instead of erroring.
+  const r = run(["check", "not-a-real-address", "--min", "abc"]);
+  assert.notStrictEqual(r.code, 0);
+  assert.ok(r.stderr.includes("--min must be a number"), r.stderr);
+}
+
 const tests = {
   test_asFloat_matches_python_repr,
   test_dumpTransfers_empty,
@@ -69,6 +98,10 @@ const tests = {
   test_qr_no_network,
   test_qr_with_amount,
   test_missing_address_fails,
+  test_parseSince_valid_date,
+  test_parseSince_garbage_throws_instead_of_silently_matching_nothing,
+  test_check_with_bad_since_fails_before_any_network_call,
+  test_check_with_non_numeric_min_fails_before_any_network_call,
 };
 
 let failed = 0;
