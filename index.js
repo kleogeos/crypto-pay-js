@@ -90,8 +90,40 @@ function fmtWhen(ts) {
   );
 }
 
+// Exported separately so it's testable without a network round-trip, and
+// called before fetchTransfers below so bad input fails fast instead of
+// wasting a TronGrid request first.
+function parseSince(since) {
+  const sinceTs = Date.parse(since + "T00:00:00Z") / 1000;
+  // Date.parse on garbage input returns NaN, and `x >= NaN` is always false —
+  // without this check every transfer would silently vanish from the later
+  // filter, printing "No matching incoming transfers found" as if there were
+  // truly no payments, instead of telling the user their --since was malformed.
+  if (Number.isNaN(sinceTs)) {
+    throw new Error(`invalid --since date '${since}', expected e.g. 2026-10-01`);
+  }
+  return sinceTs;
+}
+
 async function cmdCheck(args) {
   const contract = resolveContract(args);
+  let sinceTs = null;
+  if (args.since) {
+    try {
+      sinceTs = parseSince(args.since);
+    } catch (e) {
+      console.error(`error: ${e.message}`);
+      process.exit(1);
+    }
+  }
+  if (args.min !== null && Number.isNaN(args.min)) {
+    // Same bug class as --since above: Number("garbage") is NaN, and
+    // `amount >= NaN` is always false, so this would otherwise silently
+    // filter out every transfer instead of reporting a bad flag value.
+    console.error(`error: --min must be a number`);
+    process.exit(1);
+  }
+
   let transfers;
   try {
     transfers = await fetchTransfers(args.address, contract, args.limit);
@@ -101,8 +133,7 @@ async function cmdCheck(args) {
   }
 
   if (args.min !== null) transfers = transfers.filter((t) => t.amount >= args.min);
-  if (args.since) {
-    const sinceTs = Date.parse(args.since + "T00:00:00Z") / 1000;
+  if (sinceTs !== null) {
     transfers = transfers.filter((t) => t.timestamp >= sinceTs);
   }
 
@@ -198,7 +229,7 @@ async function main() {
   process.exit(1);
 }
 
-module.exports = { fetchTransfers, dumpTransfers, asFloat, fmtWhen };
+module.exports = { fetchTransfers, dumpTransfers, asFloat, fmtWhen, parseSince };
 
 if (require.main === module) {
   main();
