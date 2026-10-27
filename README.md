@@ -73,3 +73,5 @@ More free tools: [Freelancer Toolbox](https://kleogeos.github.io/freelancer-tool
 ```bash
 node test.js
 ```
+
+Using the invoice generator a lot? [Telegram subscription bot](https://t.me/freelancerkitbot) — 250 Stars/month (~$3.25), unlimited invoices generated and sent right in chat, cancel anytime (`/subscribe`).
